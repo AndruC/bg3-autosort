@@ -37,3 +37,7 @@ Bump `Version64` in `meta.lsx` before a release (`major<<55 | minor<<47 | revisi
 - The party inventory screen's Sort button doesn't change the auto-sort option.
 - You can't keep a manual arrangement while the mod is active.
 - Multiplayer is untested.
+
+## License
+
+MIT for this mod's own changes and tooling; see [LICENSE](LICENSE). The overridden XAML files are based on Larian Studios' Baldur's Gate 3 UI, which remains theirs.
