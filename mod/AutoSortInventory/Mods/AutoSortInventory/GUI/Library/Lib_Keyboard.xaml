@@ -1,0 +1,256 @@
+<!-- AutoSortInventory: keyboard/mouse library. Redefines CharacterInventoryTemplate
+     (originally in Public/Game/GUI/Library/CharacterSheetTemplates_k.xaml) so the
+     inventory grid is live-sorted like the controller inventory. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:ls="clr-namespace:ls;assembly=Code"
+                    xmlns:noesis="clr-namespace:NoesisGUIExtensions;assembly=Noesis.GUI.Extensions"
+                    xmlns:System="clr-namespace:System;assembly=mscorlib"
+                    mc:Ignorable="d">
+
+    <!-- AutoSortInventory: copy of InventoryGridTemplate with AutoIndex forced on, so items are laid out
+         in list (sorted) order instead of by their physical slot index -->
+    <ItemsPanelTemplate x:Key="AutoSortInventoryGridTemplate">
+        <ls:LSGrid x:Name="InvGrid" Style="{StaticResource InventoryGridStyle}" ContainerData="{Binding Inventory}" AutoIndex="True">
+            <b:Interaction.Behaviors>
+                <!-- AutoSortInventory: displayed positions no longer match physical slots, so a slot-targeted drop would
+                     swap with whatever item really occupies that slot. Drop onto the character instead (same as the party portraits). -->
+                <ls:DropOnGenericBehavior DropCommand="{Binding DataContext.DropOnGameObjectCommand, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}" DropCommandParameter="{Binding}"/>
+            </b:Interaction.Behaviors>
+            <b:Interaction.Triggers>
+                <b:EventTrigger EventName="PreviewDrop">
+                    <ls:LSPlaySound Sound="UI_State_MouseOverInventory"/>
+                </b:EventTrigger>
+                <b:EventTrigger EventName="MouseEnter">
+                    <ls:LSPlaySound Sound="UI_State_MouseOverInventory"/>
+                </b:EventTrigger>
+                <b:EventTrigger EventName="MouseLeave">
+                    <ls:LSPlaySound Sound="UI_State_MouseOverInventory_Off"/>
+                </b:EventTrigger>
+                <b:EventTrigger EventName="WidgetClosing">
+                    <b:InvokeCommandAction Command="{Binding DataContext.ClearInventoryNewFlags, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}" CommandParameter="{Binding }"/>
+                </b:EventTrigger>
+
+                <b:EventTrigger EventName="WidgetClosing" >
+                    <b:Interaction.Behaviors>
+                        <b:ConditionBehavior>
+                            <b:ConditionalExpression>
+                                <b:ComparisonCondition LeftOperand="{Binding IsVisible, ElementName=CharacterPanelHolder}" Operator="Equal" RightOperand="True"/>
+                            </b:ConditionalExpression>
+                        </b:ConditionBehavior>
+                    </b:Interaction.Behaviors>
+                    <!-- Tutorial UI Event - Inventory Closed-->
+                    <b:InvokeCommandAction Command="{Binding DataContext.TutorialEvent, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}" CommandParameter="3b433da9-3bd4-4273-8e7f-f85e03ee1601"/>
+                </b:EventTrigger>
+            </b:Interaction.Triggers>
+        </ls:LSGrid>
+    </ItemsPanelTemplate>
+
+    <ControlTemplate x:Key="CharacterInventoryTemplate" TargetType="Control">
+        <Grid x:Name="CharacterPanelHolder" Tag="{Binding PlayerCharacterProperties.IsContentEditable}"
+              d:DataContext="{d:DesignInstance {x:Type ls:Character}, IsDesignTimeCreatable=True}">
+            <b:Interaction.Triggers>
+                <b:DataTrigger Binding="{Binding IsVisible, ElementName=CharacterPanelHolder}" Value="True">
+                    <!-- Tutorial UI Event - Inventory Opened-->
+                    <b:InvokeCommandAction Command="{Binding DataContext.TutorialEvent, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}" CommandParameter="e2d0dd0a-5958-454f-9ec3-0bfba58c7153"/>
+                </b:DataTrigger>
+                <b:DataTrigger Binding="{Binding IsVisible, ElementName=CharacterPanelHolder}" Value="False">
+                    <!-- Tutorial UI Event - Inventory Closed-->
+                    <b:InvokeCommandAction Command="{Binding DataContext.TutorialEvent, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}" CommandParameter="3b433da9-3bd4-4273-8e7f-f85e03ee1601"/>
+                </b:DataTrigger>
+
+            </b:Interaction.Triggers>
+
+
+            <Grid x:Name="InventoryColumnHolder" Tag="JustCreated" HorizontalAlignment="Stretch" >
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <b:Interaction.Triggers>
+                    <b:DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=InventoryHolder}" Value="False">
+                        <b:ChangePropertyAction TargetName="InventoryHolder" PropertyName="SelectedIndex" Value="-1" />
+                    </b:DataTrigger>
+                    <b:EventTrigger EventName="MouseRightButtonUp" SourceObject="{Binding RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}">
+                        <b:Interaction.Behaviors>
+                            <b:ConditionBehavior>
+                                <b:ConditionalExpression>
+                                    <b:ComparisonCondition LeftOperand="{Binding Path=IsMouseOver, ElementName=InventoryHolder}" Operator="Equal" RightOperand="False"/>
+                                </b:ConditionalExpression>
+                            </b:ConditionBehavior>
+                        </b:Interaction.Behaviors>
+                        <b:ChangePropertyAction TargetName="InventoryHolder" PropertyName="SelectedIndex" Value="-1" />
+                    </b:EventTrigger>
+                </b:Interaction.Triggers>
+
+                <ls:LSInputBinding BoundEvent="ActionCancel" EatInput="False" IsEnabled="True" PlayerId="{Binding PlayerId, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}">
+                    <b:Interaction.Triggers>
+                        <b:EventTrigger EventName="LSInputBindingPressed">
+                            <b:ChangePropertyAction TargetName="InventoryHolder" PropertyName="SelectedIndex" Value="-1" />
+                        </b:EventTrigger>
+                    </b:Interaction.Triggers>
+                </ls:LSInputBinding>
+
+                <!-- Inventory -->
+                <ListBox Grid.Row="1" x:Name="InventoryHolder" ItemsSource="{Binding SortedItems, ElementName=AutoSortedInventory}" ItemsPanel="{StaticResource AutoSortInventoryGridTemplate}" SelectionMode="Extended" ls:MultiSelect.IsEnabled="False" ItemTemplate="{StaticResource Template.InventorySlot}" ls:AttachedProperties.InheritedNumber="{Binding ActualWidth, ElementName=InventoryColumnHolder}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalAlignment="Right" ItemContainerStyle="{StaticResource InvContainerItemStyle}">
+
+                    <b:Interaction.Behaviors>
+                        <ls:DragGenericBehavior StartDragCommand="{Binding DataContext.DragInventoryCommand , RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}"/>
+                        <ls:WidgetDataConnectionBehavior/>
+                    </b:Interaction.Behaviors>
+
+                    <ListBox.Template>
+                        <ControlTemplate TargetType="ListBox">
+                            <Grid x:Name="TemplateRoot" >
+                                <Border x:Name="InventoryTint" Background="{StaticResource InventoryBGShade}" Margin="-6,-4,20,-6" BorderBrush="Transparent" BorderThickness="2"/>
+                                <ScrollViewer VerticalScrollBarVisibility="Visible" HorizontalContentAlignment="Right" Style="{StaticResource NoForcedScrollViewerStyle}" HorizontalScrollBarVisibility="Disabled" Padding="0,0,0,0" >
+                                    <b:Interaction.Behaviors>
+                                        <ls:DragScrollingBehavior/>
+                                    </b:Interaction.Behaviors>
+                                    <ItemsPresenter x:Name="itemsContainer"/>
+                                </ScrollViewer>
+                                <Grid x:Name="NoItemsFoundOverlay" Visibility="Collapsed">
+                                    <Rectangle Fill="{StaticResource LS_DisabledPanelColor}"/>
+                                    <Control Template="{StaticResource NoResultsFoundTemplate}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,0"/>
+                                </Grid>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding CurrentFilter, ElementName=FilteringContainerHolder, Converter={StaticResource NullToBoolTrueConverter}}" Value="False"/>
+                                        <Condition Binding="{Binding ItemsSource.Count, RelativeSource={RelativeSource Self}}" Value="0"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter TargetName="NoItemsFoundOverlay" Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+
+                                <!--Hide the no items found overlay if we're attempting to drag-->
+
+                                <DataTrigger Binding="{Binding DataContext.CurrentPlayer.UIData.DragData.DraggingGameObjects.Count,Converter={StaticResource GreaterThanConverter}, ConverterParameter='0', RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}" Value="True">
+                                    <Setter TargetName="NoItemsFoundOverlay" Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding CurrentFilter, ElementName=FilteringContainerHolder, Converter={StaticResource NullToBoolTrueConverter}}" Value="False">
+                                    <Setter TargetName="InventoryTint" Property="Background" Value="{StaticResource InventoryBGShadeFilter}"/>
+                                    <Setter TargetName="InventoryTint" Property="BorderBrush" Value="{StaticResource InventoryBGShadeFilterBorder}"/>
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ListBox.Template>
+                </ListBox>
+
+                <!-- Filter -->
+                <Grid x:Name="FiltersControl" Grid.Row="0" VerticalAlignment="Top" Height="88">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <b:Interaction.Behaviors>
+                        <ls:InventoriesMergerBehavior x:Name="InventoriesMerger" Inventories="{Binding Inventories}"/>
+                        <ls:InventoriesMergerBehavior x:Name="PartyInventoriesMerger" Inventories="{Binding DataContext.CurrentPlayer.PartyInventory, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}"/>
+                        <!-- AutoSortInventory: show items in physical slot order (packed by AutoIndex); the game's own sort is re-run on changes, see AutoSortOptionHolder -->
+                        <ls:CollectionSortBehavior x:Name="AutoSortedInventory" ItemsSource="{Binding GeneratedItemsList, ElementName=FilteringContainerHolder}" Comparer="{Binding DataContext.Data.InventoryIndexSortComparer, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}"/>
+                    </b:Interaction.Behaviors>
+
+                    <ls:LSComboBox x:Name="InventorySortListHolder"
+                                   Template="{StaticResource SortListTemplate}"
+                                   ItemsSource="{Binding DataContext.CurrentPlayer.UIData.InventorySortOptions, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,-6,0,0"
+                                   Grid.Column="0">
+                        <b:Interaction.Triggers>
+                            <!-- AutoSortInventory: remember the picked option on a UI element (not game data). Guarded because the
+                                 SelectedIndex=-1 reset below re-fires SelectionChanged with nothing selected. -->
+                            <b:EventTrigger EventName="SelectionChanged">
+                                <b:Interaction.Behaviors>
+                                    <b:ConditionBehavior>
+                                        <b:ConditionalExpression>
+                                            <b:ComparisonCondition LeftOperand="{Binding SelectedIndex, ElementName=InventorySortListHolder}" Operator="NotEqual" RightOperand="-1"/>
+                                        </b:ConditionalExpression>
+                                    </b:ConditionBehavior>
+                                </b:Interaction.Behaviors>
+                                <b:ChangePropertyAction TargetName="AutoSortOptionHolder" PropertyName="Tag" Value="{Binding SelectedItem, ElementName=InventorySortListHolder}"/>
+                            </b:EventTrigger>
+                            <b:EventTrigger EventName="SelectionChanged">
+                                <b:InvokeCommandAction Command="{Binding DataContext.SelectSortCommand, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}">
+                                    <b:InvokeCommandAction.CommandParameter>
+                                        <MultiBinding Converter="{StaticResource PassThroughConverter}">
+                                            <Binding Path="SelectedItem" ElementName="InventorySortListHolder"/>
+                                            <Binding Path="DataContext" ElementName="InventorySortListHolder"/>
+                                        </MultiBinding>
+                                    </b:InvokeCommandAction.CommandParameter>
+                                </b:InvokeCommandAction>
+                                <!-- Clear selecting to allow re-selecting -->
+                                <b:ChangePropertyAction PropertyName="SelectedIndex" Value="-1"/>
+                            </b:EventTrigger>
+                        </b:Interaction.Triggers>
+                    </ls:LSComboBox>
+
+                    <!-- AutoSortInventory: holds the last picked sort option (defaults to the game's current one) and re-runs the
+                         game's sort with it whenever the number of displayed items changes. -->
+                    <Border x:Name="AutoSortOptionHolder" Grid.Column="0" Visibility="Collapsed"
+                            Tag="{Binding DataContext.CurrentPlayer.CurrentInventorySortOption, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}, Mode=OneWay}">
+                        <b:Interaction.Triggers>
+                            <b:PropertyChangedTrigger Binding="{Binding SortedItems.Count, ElementName=AutoSortedInventory}">
+                                <b:Interaction.Behaviors>
+                                    <b:ConditionBehavior>
+                                        <b:ConditionalExpression>
+                                            <b:ComparisonCondition LeftOperand="{Binding CurrentFilter, ElementName=FilteringContainerHolder, Converter={StaticResource NullToBoolTrueConverter}}" Operator="Equal" RightOperand="True"/>
+                                            <b:ComparisonCondition LeftOperand="{Binding Tag, ElementName=AutoSortOptionHolder, Converter={StaticResource NullToBoolTrueConverter}}" Operator="Equal" RightOperand="False"/>
+                                        </b:ConditionalExpression>
+                                    </b:ConditionBehavior>
+                                </b:Interaction.Behaviors>
+                                <b:InvokeCommandAction Command="{Binding DataContext.SelectSortCommand, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}">
+                                    <b:InvokeCommandAction.CommandParameter>
+                                        <MultiBinding Converter="{StaticResource PassThroughConverter}">
+                                            <Binding Path="Tag" ElementName="AutoSortOptionHolder"/>
+                                            <Binding Path="DataContext" ElementName="InventorySortListHolder"/>
+                                        </MultiBinding>
+                                    </b:InvokeCommandAction.CommandParameter>
+                                </b:InvokeCommandAction>
+                            </b:PropertyChangedTrigger>
+                        </b:Interaction.Triggers>
+                    </Border>
+
+                    <ls:FilteringContainer Grid.Column="1" x:Name="FilteringContainerHolder" Margin="4,0,4,0" FilterPredicate="{Binding PlayerCharacterProperties.InventoryPredicate}" Template="{StaticResource FilterHolderTemplate}"
+                                           CurrentFilter="{Binding DataContext.CurrentPlayer.UIData.GlobalSelectedFilter, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}, Mode=OneWay}"
+                                           ItemsList="{Binding InventoriesSlots, ElementName=InventoriesMerger}" DefaultViewItemsList="{Binding Inventory.Slots}" MaxDisplayedFilters="12"
+                                           SortComparer="{Binding DataContext.Data.InventoryIndexSortComparer, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}"
+                                           HoldFiltering="{Binding IsMerging, ElementName=InventoriesMerger}">
+                        <ls:FilteringContainer.EnumFiltersList>
+                            <ls:EnumFilterItem EnumId="ls.EPopularFilters" Label="h977af483ga6d9g4334g9ee0g3b85b94c67db" AlwaysVisible="True" />
+                            <ls:EnumFilterItem EnumId="eoc::EProficiencyGroup" Label="ha4c5f0cfg93ebg47ecg8eecg6524ad70aee0" />
+                        </ls:FilteringContainer.EnumFiltersList>
+
+                        <b:Interaction.Triggers>
+                            <b:DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=FilteringContainerHolder}" Value="True">
+                                <b:InvokeCommandAction Command="{Binding DataContext.HideAvailableEquipmentCommand, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}" CommandParameter="{Binding DataContext.CurrentPlayer.SelectedCharacter.Equipment, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}"/>
+                            </b:DataTrigger>
+
+                            <b:EventTrigger EventName="FilterCleared">
+                                <b:InvokeCommandAction Command="{Binding DataContext.ClearFilterCommand, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}"/>
+                                <b:ChangePropertyAction TargetName="ChangePartyContextButton" PropertyName="IsChecked" Value="False"/>
+                            </b:EventTrigger>
+                        </b:Interaction.Triggers>
+                    </ls:FilteringContainer>
+
+                    <!--Infotip-->
+                    <Control Grid.Column="2" Template="{StaticResource CharacterSheetInfotipTemplate}" VerticalAlignment="Center" Margin="-8,-8,8,0"  HorizontalAlignment="Right" ToolTipService.Placement="Right"/>
+                </Grid>
+
+            </Grid>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <DataTrigger Binding="{Binding SelectedItems.Count,ElementName=InventoryHolder,Converter={StaticResource GreaterThanConverter},ConverterParameter=1}" Value="True">
+                <Setter TargetName="InventoryHolder" Property="ls:MultiSelect.IsEnabled" Value="True"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Name, RelativeSource={RelativeSource AncestorType={x:Type ls:UIWidget}}}" Value="PartyPanel" >
+                <Setter TargetName="FiltersControl" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+</ResourceDictionary>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Auto Sort Inventory art</title>
+<style>
+  :root {
+    --gold: #d8b46a;
+    --gold-dim: #8a6d3b;
+    --ink: #0d0a08;
+    --text: #efe2c4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--ink); }
+  body {
+    font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    color: var(--text);
+    background:
+      radial-gradient(ellipse at 50% 35%, rgba(150, 105, 50, .28), transparent 60%),
+      radial-gradient(ellipse at 50% 120%, rgba(90, 40, 20, .45), transparent 60%),
+      linear-gradient(#1a1410, #0b0806);
+    position: relative;
+  }
+  body::after { /* vignette */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    box-shadow: inset 0 0 220px 60px rgba(0,0,0,.85);
+  }
+  .frame { position: absolute; inset: 22px; border: 2px solid var(--gold-dim); outline: 1px solid rgba(216,180,106,.25); outline-offset: 6px; pointer-events: none; z-index: 2; }
+
+  h1 {
+    font-variant: small-caps; font-weight: 700; letter-spacing: .06em;
+    background: linear-gradient(#fbe7b5, #d8b46a 55%, #9c7a3e);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,.9));
+    line-height: 1;
+  }
+  .sub { color: #cbb68c; font-style: italic; text-shadow: 0 2px 4px #000; }
+  .rule { height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  .tags { display: flex; gap: 18px; justify-content: center; }
+  .tag { border: 1px solid var(--gold-dim); padding: 8px 20px; border-radius: 4px; background: rgba(0,0,0,.45); color: #e6d3a6; font-size: 26px; letter-spacing: .03em; }
+
+  .grid { display: grid; gap: 6px; padding: 14px; background: rgba(8,6,4,.85); border: 2px solid #5b4527; border-radius: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 20px rgba(0,0,0,.9); }
+  .slot {
+    width: var(--s); height: var(--s); border-radius: 4px;
+    background: linear-gradient(#2a221b, #17120e);
+    border: 1px solid #3e3122; box-shadow: inset 0 2px 6px rgba(0,0,0,.8);
+    display: grid; place-items: center; position: relative;
+    font-size: calc(var(--s) * .58);
+    font-family: "Segoe UI Emoji", sans-serif;
+  }
+  .slot.item { filter: saturate(.8); }
+  .slot.r1 { box-shadow: inset 0 -10px 14px -6px rgba(90, 200, 90, .55), inset 0 2px 6px rgba(0,0,0,.8); border-color: #3f6a3a; }
+  .slot.r2 { box-shadow: inset 0 -10px 14px -6px rgba(80, 140, 255, .6), inset 0 2px 6px rgba(0,0,0,.8); border-color: #3a5480; }
+  .slot.r3 { box-shadow: inset 0 -10px 14px -6px rgba(190, 90, 255, .6), inset 0 2px 6px rgba(0,0,0,.8); border-color: #64408a; }
+  .slot.r4 { box-shadow: inset 0 -10px 14px -6px rgba(255, 170, 40, .65), inset 0 2px 6px rgba(0,0,0,.8); border-color: #8a6420; }
+  .label { text-align: center; font-variant: small-caps; letter-spacing: .1em; color: var(--gold); font-size: 30px; margin-bottom: 12px; text-shadow: 0 2px 4px #000; }
+  .arrow { font-size: 120px; color: var(--gold); text-shadow: 0 0 30px rgba(216,180,106,.5), 0 4px 6px #000; line-height: 1; }
+
+  /* layouts */
+  .primary { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; z-index: 1; }
+  .primary h1 { font-size: 132px; }
+  .primary .sub { font-size: 40px; }
+  .primary .rule { width: 900px; }
+  .compare { display: flex; align-items: center; gap: 50px; }
+
+  .header { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 56px; z-index: 1; }
+  .header .text { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+  .header h1 { font-size: 62px; white-space: nowrap; }
+  .header .text { visibility: hidden; } /* Nexus overlays the mod title; keep the space so the grid stays put */
+  body.mode-header::after { box-shadow: inset 0 0 120px 30px rgba(0,0,0,.85); }
+  body.mode-header .frame { inset: 14px; }
+  .header .sub { font-size: 34px; }
+  .header .rule { width: 100%; }
+</style>
+</head>
+<body>
+<div class="frame"></div>
+<div id="root"></div>
+<script>
+  // [glyph, rarity, type-order]
+  const ITEMS = [
+    ["⚔️",3,0], ["🗡️",2,0], ["🏹",1,0], ["🪓",0,0],
+    ["🛡️",2,1], ["🪖",1,1], ["🥾",0,1],
+    ["💍",4,2], ["📿",3,2],
+    ["🧪",1,3], ["🧪",1,3], ["⚗️",2,3],
+    ["📜",2,4], ["📜",0,4], ["📕",3,4],
+    ["🍎",0,5], ["🍞",0,5], ["🧀",0,5], ["🍷",0,5],
+    ["🗝️",0,6], ["💎",3,6], ["🪙",0,6],
+  ];
+  const sorted = [...ITEMS].sort((a, b) => a[2] - b[2] || b[1] - a[1]);
+  // a scrambled order with gaps, fixed so the render is deterministic
+  const MESSY_ORDER = [14, null, 3, 19, 8, null, 0, 17, 11, null, 5, 21, 2, null, 12, 9, null, 16, 6, 20, null, 1, 13, null, 18, 7, 4, null, 15, 10];
+
+  const slot = (it) => {
+    const d = document.createElement("div");
+    d.className = "slot" + (it ? " item" + (it[1] ? " r" + it[1] : "") : "");
+    if (it) d.textContent = it[0];
+    return d;
+  };
+  const grid = (cells, cols, size) => {
+    const g = document.createElement("div");
+    g.className = "grid";
+    g.style.gridTemplateColumns = `repeat(${cols}, var(--s))`;
+    g.style.setProperty("--s", size + "px");
+    cells.forEach(c => g.appendChild(slot(c)));
+    return g;
+  };
+  const pad = (arr, n) => arr.concat(Array(Math.max(0, n - arr.length)).fill(null));
+  const el = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; };
+
+  const root = document.getElementById("root");
+  const mode = new URLSearchParams(location.search).get("mode") || "primary";
+  document.body.classList.add("mode-" + mode);
+
+  if (mode === "primary") {
+    const p = el(`<div class="primary">
+      <h1>Auto Sort Inventory</h1>
+      <div class="sub">Inventories and containers that keep themselves sorted</div>
+      <div class="rule"></div>
+      <div class="compare"></div>
+      <div class="tags"><span class="tag">Uses the game's own Sort</span><span class="tag">Type · Value · Weight …</span><span class="tag">No Script Extender</span></div>
+    </div>`);
+    const cmp = p.querySelector(".compare");
+    const messy = MESSY_ORDER.map(i => i === null ? null : ITEMS[i]);
+    const wrap = (label, g) => { const w = el(`<div><div class="label">${label}</div></div>`); w.appendChild(g); return w; };
+    cmp.appendChild(wrap("Picked up", grid(messy, 6, 74)));
+    cmp.appendChild(el(`<div class="arrow">➜</div>`));
+    cmp.appendChild(wrap("Auto sorted", grid(pad(sorted, 30), 6, 74)));
+    root.appendChild(p);
+  } else {
+    const h = el(`<div class="header">
+      <div class="text">
+        <h1>Auto Sort Inventory</h1>
+        <div class="rule"></div>
+      </div>
+    </div>`);
+    h.appendChild(grid(pad(sorted, 24), 8, 44));
+    root.appendChild(h);
+  }
+</script>
+</body>
+</html>

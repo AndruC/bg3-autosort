@@ -1,0 +1,8 @@
+# Build output (published as GitHub release assets instead)
+dist/
+
+# Third-party tooling (LSLib) - download separately, see README
+tools/
+
+# Extracted game files (Larian's, not ours to redistribute)
+unpacked/
