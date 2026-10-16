@@ -33,7 +33,7 @@ Bump `Version64` in `meta.lsx` before a release (`major<<55 | minor<<47 | revisi
 ## Known limitations
 
 - Newly picked-up items briefly appear in the last slot before being sorted.
-- The chosen sort option isn't saved across loads or window reopenings.
+- The chosen sort option isn't saved across loads; it goes back to the default after loading a save.
 - The party inventory screen's Sort button doesn't change the auto-sort option.
 - You can't keep a manual arrangement while the mod is active.
 - Multiplayer is untested.
